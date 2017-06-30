@@ -34,6 +34,12 @@ def reportPopularArticles():
 
 test = reportPopularArticles()
 print (test)
+
+
+
+count_query = """select count(articles.author) as total, articles.author, authors.name from log, articles, authors where log.path like concat('%', articles.slug, '%') and articles.author= authors.id
+group by  articles.author, authors.name
+order by total;"""
 #
 # def deleteMatches():
 #     """Remove all the match records from the database."""
