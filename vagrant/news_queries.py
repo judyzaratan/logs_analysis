@@ -40,6 +40,9 @@ print (test)
 count_query = """select count(articles.author) as total, articles.author, authors.name from log, articles, authors where log.path like concat('%', articles.slug, '%') and articles.author= authors.id
 group by  articles.author, authors.name
 order by total;"""
+
+
+count_query = " select (cast(a.tally as decimal)/b.tally)*100 as percent, a.tally, b.tally , a.d, b.d from (select count(status) as tally, date(time) as d from log where status = '404 NOT FOUND' group by d) as a, (select count(status) as tally, date(time) as d from log group by d) as b where a.d =  b.d;"
 #
 # def deleteMatches():
 #     """Remove all the match records from the database."""
