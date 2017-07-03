@@ -1,12 +1,15 @@
 # Logs Analysis
 
 ## Description
+This application reports the following queries from a sample SQL news database.  
+1) Reports the 3 most popular articles
+2) Reports the 3 most popular authors
+3) Report the days where more than 1% of requests on news website lead to errors
 
-
-##How to run application
+## How to run application
 
 1) Run a virtual machine
-⋅⋅⋅Vagrantfile is included in repository. Please run following commands in Terminal:
+Vagrantfile is included in repository. Please run following commands in Terminal:
 
 ```
 vagrant up
