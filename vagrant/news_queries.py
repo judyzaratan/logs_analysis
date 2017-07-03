@@ -1,161 +1,58 @@
 #!/usr/bin/env python
 #
-# tournament.py -- implementation of a Swiss-system tournament
+# news_query.py -- reports results from a news article database
 #
 
 import psycopg2
 
 
+query1 = """select articles.title, count(*) as total from log, articles
+            where log.path like concat('%', articles.slug, '%')
+            group by articles.slug, articles.title
+            order by total desc
+            limit 3;
+            """
+report1_title = "Report 3 top accessed articles"
+
+query2 = """select count(articles.author) as total, authors.name
+from log, articles, authors
+where log.path like concat('%', articles.slug, '%')
+and articles.author= authors.id
+group by authors.name
+order by total desc
+limit 3;"""
+report2_title = "Report 3 top viewed authors"
+
+query3 = """select (round((cast(a.tally as decimal)/b.tally)*100, 2)) as percent,
+        a.tally, b.tally , a.d, b.d from
+        (select count(status) as tally, date(time) as d from log
+        where status = '404 NOT FOUND' group by d) as a,
+        (select count(status) as tally, date(time) as d from log group by d) as b
+        where a.d =  b.d ;"""
+report3_title = "Report day when over 1% resulted in error"
+
+reports = [(report1_title, query1), (report2_title, query2), (report3_title, query3)]
+
 def connect(database_name="news"):
     try:
-
         """Connect to the PostgreSQL database.  Returns a database connection."""
         db =  psycopg2.connect("dbname={}".format(database_name))
         cursor = db.cursor()
-        print ('connected to the database')
+        print ('Connected to the database')
         return db, cursor
     except:
         print("<error message>")
 
+def query(query_list):
+    for report in query_list:
+        db, c = connect()
+        print (report[0])
+        c.execute(report[1])
+        q = c.fetchall()
+        c.close()
+        for result in q:
+            print ('"', result[0], '" —', result[1], "views")
+    print ("Queries complete")
+    return
 
-def reportPopularArticles():
-    print ('running')
-    count_query = """select count(*) as total,
-        articles.title from log, articles
-        where log.path like concat('%', articles.slug, '%')
-        group by articles.slug
-        order by total desc;"""
-    db, c = connect()
-    c.execute("SELECT * FROM AUTHORS;")
-    count = c.fetchall()
-    db.close()
-    return count
-
-
-test = reportPopularArticles()
-print (test)
-
-
-
-count_query = """select count(articles.author) as total, articles.author, authors.name from log, articles, authors where log.path like concat('%', articles.slug, '%') and articles.author= authors.id
-group by  articles.author, authors.name
-order by total;"""
-
-
-count_query = " select (cast(a.tally as decimal)/b.tally)*100 as percent, a.tally, b.tally , a.d, b.d from (select count(status) as tally, date(time) as d from log where status = '404 NOT FOUND' group by d) as a, (select count(status) as tally, date(time) as d from log group by d) as b where a.d =  b.d;"
-#
-# def deleteMatches():
-#     """Remove all the match records from the database."""
-#     delete_sql = "delete from matches"
-#     db, c = connect()
-#     c.execute(delete_sql)
-#     db.commit()
-#     db.close()
-#
-#
-# def deletePlayers():
-#     """Remove all the player records from the database."""
-#     delete_sql = "delete from players"
-#     db, c = connect()
-#     c.execute(delete_sql)
-#     db.commit()
-#     db.close()
-#
-#
-# def countPlayers():
-#     """Returns the number of players currently registered."""
-#     count_query = """
-#         select count(*) from players
-#         """
-#     db, c = connect()
-#     count = c.execute(count_query)
-#     # Uses fetchone due to one row resulting from count aggregation
-#     count = c.fetchone()[0]
-#     db.close()
-#     return count
-#
-#
-# def registerPlayer(name):
-#     """Adds a player to the tournament database.
-#
-#     The database assigns a unique serial id number for the player.  (This
-#     should be handled by your SQL database schema, not in your Python code.)
-#
-#     Args:
-#       name: the player's full name (need not be unique).
-#     """
-#     insert_sql = """insert into players (name) values (%s)"""
-#     db, c = connect()
-#     c.execute(insert_sql, (name,))
-#     db.commit()
-#     db.close()
-#
-#
-# def playerStandings():
-#     """Returns a list of the players and their win records, sorted by wins.
-#
-#     The first entry in the list should be the player in first place,
-#     or a player tied for first place if there is currently a tie.
-#
-#     Returns:
-#       A list of tuples, each of which contains (id, name, wins, matches):
-#         id: the player's unique id (assigned by the database)
-#         name: the player's full name (as registered)
-#         wins: the number of matches the player has won
-#         matches: the number of matches the player has played
-#     """
-#     standing_query = """select * from standings_view"""
-#     db, c = connect()
-#     playerStandings = c.execute(standing_query)
-#     playerStandings = c.fetchall()
-#     db.close()
-#     return playerStandings
-#
-#
-# def reportMatch(winner, loser):
-#     """Records the outcome of a single match between two players.
-#
-#     Args:
-#       winner:  the id number of the player who won
-#       loser:  the id number of the player who lost
-#     """
-#     reportMatch_sql = """
-#         insert into matches (winner, loser) values (%s, %s)"""
-#     db, c = connect()
-#
-#     c.execute(reportMatch_sql, (winner, loser,))
-#     db.commit()
-#     db.close()
-#
-#
-# def swissPairings():
-#     """Returns a list of pairs of players for the next round of a match.
-#
-#     Assuming that there are an even number of players registered, each player
-#     appears exactly once in the pairings.  Each player is paired with another
-#     player with an equal or nearly-equal win record, that is, a player adjacent
-#     to him or her in the standings.
-#
-#     Returns:
-#       A list of tuples, each of which contains (id1, name1, id2, name2)
-#         id1: the first player's unique id
-#         name1: the first player's name
-#         id2: the second player's unique id
-#         name2: the second player's name
-#     """
-#     db, c = connect()
-#     sql_count = """
-#         select count(name) from players"""
-#     count = c.execute(sql_count)
-#     count = c.fetchone()[0]
-#
-#     #Check to see an even number of players are present
-#     if count % 2 == 0:
-#         results = playerStandings()
-#         pairings = []
-#         for i in range(0, len(results), 2):
-#             tup = (results[i][0], results[i][1], results[i+1][0], results[i+1][1])
-#             pairings.append(tup)
-#         return pairings
-#     else:
-#         return "Uneven number of players"
+query(reports)
